@@ -4,49 +4,20 @@ import { Observable,  Subject } from 'rxjs';
 const socket = new Socket("ws://localhost:4000/socket", {params: {user: "mike"}})
 socket.connect()
 
-/*const socketEpic = (action$, store) =>
-  action$.ofType('JOIN_ROOM')
-    .flatMap(action =>
-    )*/
-// const somethingEpic = action$ =>
-//   action$.ofType(WOW)
-//     .flatMap(action =>
-//       something(action))
-//         .catch({ xhr }) => Observable.of(
-//           someAction(xhr),
-//           somOtherAction(xhr)
-//         ))
-//     );
-const joinRoom = (action) =>
-  new Observable((observer) => {
-    const channel = socket.channel(action.payload)
-    channel.join()
-      .receive('ok', response => observer.next({type: 'JOIN_ROOM_SUCCESS', payload: {channel, response}}))
-      .receive('error', response => observer.next({type: 'JOIN_ROOM_ERROR', payload: {channel, response}}))
-      .receive('timeout', () => observer.next({ type: 'JOIN_ROOM_ERROR', error: 'The request has timed out please try againg when you will have internet connection' }))
-
-    console.log("ch", channel)
-    return channel
-  })
-  .retryWhen(
-    err => window.navigator.onLine ?
-    Observable.timer(1000) : Observable.fromEvent(window, 'online')
-  )
-
-const observeMessage = (action) =>
-  Observable.fromEvent(action.payload.channel, "msg:new")
-    .map(msg => {
-      debugger;
-    })
-
 
 const socketEpic = (action$, store) =>
   action$.ofType('JOIN_ROOM')
-    .flatMap(action => {
-      Observable.concat(
-        debugger;
-        joinRoom(action),
-        observeMessage(action)
+    .mergeMap(action => {
+      let obs = new Observable((observer) => {
+        const channel = socket.channel(action.payload)
+        channel.join()
+          .receive('ok', resp => observer.next({type: 'JOIN_ROOM_SUCCESS', payload: {channel, resp}}))
+          .receive('error', resp => observer.next({type: 'JOIN_ROOM_ERROR', payload: {channel, resp}}))
+
+      })
+      .retryWhen(
+        err => window.navigator.onLine ?
+        Observable.timer(1000) : Observable.fromEvent(window, 'online')
       )
       .takeUntil(
         action$.ofType('LEAVE_ROOM')
@@ -55,73 +26,70 @@ const socketEpic = (action$, store) =>
           })
       )
       .map(msg => msg)
+      return obs
     })
-// const socketEpic = (action$, store) =>
-//   action$.ofType('JOIN_ROOM')
-//     .mergeMap(action => {
-//       let obs = new Observable((observer) => {
-//         const channel = socket.channel(action.payload)
-//         channel.join()
-//           .receive('ok', resp => observer.next({type: 'JOIN_ROOM_SUCCESS', payload: {channel, resp}}))
-//           .receive('error', resp => observer.next({type: 'JOIN_ROOM_ERROR', payload: {channel, resp}}))
-//
-//         // channel.on("new:msg", msg => observer.next({type: 'RECIEVE_MESSAGE', payload: {channel, msg}}))
-//         // return channel
-//         debugger;
-//         const messages = Observable.fromEvent(channel, "msg:new")
-//       })
-//       .retryWhen(
-//         err => window.navigator.onLine ?
-//         Observable.timer(1000) : Observable.fromEvent(window, 'online')
-//       )
-//       .takeUntil(
-//         action$.ofType('LEAVE_ROOM')
-//           .filter(closeAction => {
-//             debugger;
-//           })
-//       )
-//       .map(msg => msg)
-//       return obs
-//     })
 
 export { socketEpic }
 
+const joinRoomEpic = (action$, store) =>
+  action$.ofType('JOIN_ROOM')
+    .mergeMap(action =>
+      new Observable(observer =>{
+        const channel = socket.channel(action.payload)
+        channel.join()
+          .receive('ok', response => observer.next({type: "JOIN_ROOM_SUCCESS", payload: { channel, response}}))
+          .receive('error', response => observer.next({type: "JOIN_ROOM_ERROR", payload: { channel, response}}))
+      })
+      .retryWhen(
+        err => window.navigator.onLine ?
+        Observable.timer(1000) : Observable.fromEvent(window, 'online')
+      )
+      .map(msg => ({type: 'JOIN_ROOM_SUCCESS', payload: msg.payload}))
+    )
 
+export { joinRoomEpic }
+
+
+const observeMessage = (action$, store) =>
+  action$.ofType('JOIN_ROOM_SUCCESS')
+    .mergeMap(action =>
+      Observable.fromEvent(action.payload.channel, "new:msg")
+        .takeUntil(
+          action$.ofType('LEAVE_ROOM')
+            .filter(closeAction => {
+              debugger;
+              closeAction.ticker === action.ticker
+            })
+        )
+        .map(msg => ({type: 'RECEIVE_MESSAGE', payload: msg}))
+    )
+
+export { observeMessage }
 
 const sendMessageEpic = (action$, store) =>
   action$.ofType('SEND_MESSAGE')
-    .mergeMap((action) => {
-      let obs = new Observable((observer) => {
-        const channel = action.payload.channel
-        debugger;
-        channel.push("new:msg", {body: action.payload.msg})
-        return channel
-      })
-      .catch(err => { debugger;})
-      .takeUntil(
-        action$.ofType('LEAVE_ROOM')
-          .filter(closeAction => {
-            debugger;
-          })
-      )
-      .map(msg => {
-        debugger;
+    .mergeMap(action =>
+      Observable.of(action.payload.channel.push("new:msg", {body: action.payload.msg}))
+        .catch(err => {
+          debugger;
         })
-    return obs
-  })
-
-
+        .map(p => ({type: 'MESSAGE_SENT', payload: p.payload}))
+    )
 
 export { sendMessageEpic }
 
+
 const recieveMessageEpic = (action$, store) =>
-  action$.ofType('RECIEVE_MESSAGE')
+  action$.ofType('RECEIVE_MESSAGE')
     .mergeMap(action => {
       debugger;
-      return {}
+      return Observable.fromEvent(action.payload.channel, "new:msg")
+        .map(msg => ({type: 'RECEIVED_MESSAGE', payload: msg}))
     })
 
 export { recieveMessageEpic }
+
+
 const stockTickerEpic = (action$, store) =>
   action$.ofType('START_TICKER_STREAM')
     .mergeMap(action =>

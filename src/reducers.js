@@ -4,7 +4,6 @@ import { socketReducer } from './components/socker/reducers';
 
 
 export const rootReducer = combineReducers({
-  pingReducer,
   socketReducer
 });
 

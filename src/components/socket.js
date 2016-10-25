@@ -21,7 +21,7 @@ class Socker extends Component {
   }
 
   connectSocket = () => {
-    this.props.createSocket("video:lobby")
+    this.props.createSocket("video:1")
   }
 
   sendMessage = () => {
