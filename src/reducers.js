@@ -1,5 +1,4 @@
 import { combineReducers } from 'redux';
-import { pingReducer } from './ping';
 import { socketReducer } from './components/socker/reducers';
 
 

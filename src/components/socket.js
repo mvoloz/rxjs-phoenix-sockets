@@ -20,6 +20,9 @@ class Socker extends Component {
     }
   }
 
+/*  componentDidUpdate = () => {
+    debugger;
+  }*/
   connectSocket = () => {
     this.props.createSocket("video:1")
   }
@@ -30,7 +33,7 @@ class Socker extends Component {
     this.setState({msgValue: ''})
   }
   render(){
-    const { joinStatus } = this.props.socketReducer
+    const { joinStatus, newMsg } = this.props.socketReducer
 
     return (
       <div>
@@ -46,7 +49,12 @@ class Socker extends Component {
         <br />
         <textarea onChange={(e) => this.setState({msgValue: e.target.value})} />
         <br />
+        <br />
         <a onClick={this.sendMessage}>Send </a>
+        <br />
+        <br />
+        <br />
+        <div> { newMsg }</div>
       </div>
     )
   }

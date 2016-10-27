@@ -1,5 +1,5 @@
 import { Socket } from 'phoenix';
-import { Observable,  Subject } from 'rxjs';
+import { Observable } from 'rxjs';
 
 const socket = new Socket("ws://localhost:4000/socket", {params: {user: "mike"}})
 socket.connect()
@@ -23,6 +23,7 @@ const socketEpic = (action$, store) =>
         action$.ofType('LEAVE_ROOM')
           .filter(closeAction => {
             debugger;
+            return true
           })
       )
       .map(msg => msg)
@@ -50,20 +51,30 @@ const joinRoomEpic = (action$, store) =>
 export { joinRoomEpic }
 
 
+// const observeMessage = (action$, store) =>
+//   action$.ofType('JOIN_ROOM_SUCCESS')
+//     .mergeMap(action =>
+//       Observable.fromEvent(action.payload.channel, 'new:msg')
+//         .takeUntil(
+//           action$.ofType('LEAVE_ROOM')
+//             .filter(closeAction => {
+//               debugger;
+//               return closeAction.ticker === action.ticker
+//             })
+//         )
+// /*        .map(msg => {
+//           debugger;
+//         })*/
+//         .map(msg => ({type: 'RECEIVE_MESSAGE', payload: msg}))
+//     )
+
 const observeMessage = (action$, store) =>
   action$.ofType('JOIN_ROOM_SUCCESS')
     .mergeMap(action =>
       Observable.fromEvent(action.payload.channel, "new:msg")
-        .takeUntil(
-          action$.ofType('LEAVE_ROOM')
-            .filter(closeAction => {
-              debugger;
-              closeAction.ticker === action.ticker
-            })
-        )
+        .filter(msg => typeof msg != 'undefined')
         .map(msg => ({type: 'RECEIVE_MESSAGE', payload: msg}))
     )
-
 export { observeMessage }
 
 const sendMessageEpic = (action$, store) =>
@@ -80,12 +91,13 @@ export { sendMessageEpic }
 
 
 const recieveMessageEpic = (action$, store) =>
-  action$.ofType('RECEIVE_MESSAGE')
-    .mergeMap(action => {
-      debugger;
-      return Observable.fromEvent(action.payload.channel, "new:msg")
-        .map(msg => ({type: 'RECEIVED_MESSAGE', payload: msg}))
-    })
+  action$.ofType('someVar')
+    .mergeMap(action =>
+      Observable.of(action.payload.channel)
+        // .filter(p => {debugger})
+        .map(msg => {debugger; return msg})
+        // .map(msg => ({type: 'RECEIVED_MESSAGE', payload: msg}))
+    )
 
 export { recieveMessageEpic }
 

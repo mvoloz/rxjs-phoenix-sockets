@@ -59,7 +59,7 @@ class Player extends Component {
     debugger;
   }
   render() {
-    const { isPinging } = this.state;
+    
 /*    navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia ;
 
     navigator.getUserMedia({audio: true, video: { width: 1280, height: 720}},
@@ -110,8 +110,6 @@ class Player extends Component {
         <br />
         <a onClick={this.toggleVideo}>toggle</a>
         <br />
-        <h1>is pinging: {isPinging.toString()}</h1>
-        <button onClick={ping}>Start PING</button>
       </div>
     );
   }
